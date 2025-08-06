@@ -90,7 +90,7 @@ def main():
 	(speed, turn) = (0.2, 1.0)
 	(x, th) = (0, 0)
 	current_angle = 0.0  # Track current angle value
-	speed = 2.0
+	speed = 10.0
 	status = 0
 	stop = False
 	count = 0
@@ -106,11 +106,15 @@ def main():
 				print ("stop keyboard control: {}".format(not stop))
 				stop = not stop
 			elif key.lower() == 'v':
-				current_angle -= 2
+				current_angle -= speed
+				if current_angle < 0:  # Ensure angle stays within bounds
+					current_angle = 0.0
 				print(f"Angle decreased to: {current_angle}")
 				count = 0
 			elif key.lower() == 'b':
-				current_angle += 2
+				current_angle += speed
+				if current_angle > 180.0:  # Ensure angle stays within bounds
+					current_angle = 180.0
 				print(f"Angle increased to: {current_angle}")
 				count = 0
 			if key in moveBindings.keys():
