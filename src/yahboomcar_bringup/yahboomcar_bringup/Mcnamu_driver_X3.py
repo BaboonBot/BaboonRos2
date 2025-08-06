@@ -55,6 +55,7 @@ class yahboomcar_driver(Node):
 
 		#create subcriber
 		self.sub_cmd_vel = self.create_subscription(Twist,"cmd_vel",self.cmd_vel_callback,1)
+		self.sub_angle_vel = self.create_subscription(Twist,"angle_vel",self.cmd_angle_vel_callback,10)
 		self.sub_RGBLight = self.create_subscription(Int32,"RGBLight",self.RGBLightcallback,100)
 		self.sub_BUzzer = self.create_subscription(Bool,"Buzzer",self.Buzzercallback,100)
 
@@ -91,6 +92,18 @@ class yahboomcar_driver(Node):
 		print("cmd_angular: ",angular)'''
         #rospy.loginfo("nav_use_rot:{}".format(self.nav_use_rotvel))
         #print(self.nav_use_rotvel)
+
+	def cmd_angle_vel_callback(self,msg):
+		if not isinstance(msg, Twist): 
+			print("Error: Received non-Twist message in angle callback")
+			return
+		angle = msg.angular.z*1.0
+		print(f"Received angle command: {angle}")
+		self.car.set_uart_servo_angle(1, angle)
+
+		# self.car.set_uart_servo_angle_array([angle, 0.0, 0.0, 0.0, 0.0, 0.0])
+		print(f"Successfully set servo angle to: {angle}")
+
 	def RGBLightcallback(self,msg):
         # 流水灯控制，服务端回调函数 RGBLight control
 		if not isinstance(msg, Int32): return

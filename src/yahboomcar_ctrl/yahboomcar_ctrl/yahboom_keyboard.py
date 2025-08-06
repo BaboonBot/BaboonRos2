@@ -22,6 +22,7 @@ w/x : increase/decrease only linear speed by 10%
 e/c : increase/decrease only angular speed by 10%
 t/T : x and y speed switch
 s/S : stop keyboard control
+V/B : subtract/add 1 to angle node
 space key, k : force stop
 anything else : stop smoothly
 
@@ -66,6 +67,7 @@ class Yahboom_Keybord(Node):
 	def __init__(self,name):
 		super().__init__(name)
 		self.pub = self.create_publisher(Twist,'cmd_vel',1)
+		self.pub_angle = self.create_publisher(Twist,'angle_vel',1)
 		self.declare_parameter("linear_speed_limit",1.0)
 		self.declare_parameter("angular_speed_limit",5.0)
 		self.linenar_speed_limit = self.get_parameter("linear_speed_limit").get_parameter_value().double_value
@@ -87,10 +89,13 @@ def main():
 	xspeed_switch = True
 	(speed, turn) = (0.2, 1.0)
 	(x, th) = (0, 0)
+	current_angle = 0.0  # Track current angle value
+	speed = 2.0
 	status = 0
 	stop = False
 	count = 0
 	twist = Twist()
+	angle_twist = Twist()
 	try:
 		print(msg)
 		print(yahboom_keyboard.vels(speed, turn))
@@ -100,10 +105,18 @@ def main():
 			elif key == "s" or key == "S":
 				print ("stop keyboard control: {}".format(not stop))
 				stop = not stop
+			elif key.lower() == 'v':
+				current_angle -= 2
+				print(f"Angle decreased to: {current_angle}")
+				count = 0
+			elif key.lower() == 'b':
+				current_angle += 2
+				print(f"Angle increased to: {current_angle}")
+				count = 0
 			if key in moveBindings.keys():
 				x = moveBindings[key][0]
 				th = moveBindings[key][1]
-				count = 0	
+				count = 0
 			elif key in speedBindings.keys():
 				speed = speed * speedBindings[key][0]
 				turn = turn * speedBindings[key][1]
@@ -125,8 +138,21 @@ def main():
 			if xspeed_switch: twist.linear.x = speed * x
 			else: twist.linear.y = speed * x
 			twist.angular.z = turn * th
-			if not stop: yahboom_keyboard.pub.publish(twist)
-			if stop:yahboom_keyboard.pub.publish(Twist())
+			
+			# Set the angle twist message
+			angle_twist.angular.z = current_angle
+			
+			if not stop: 
+				yahboom_keyboard.pub.publish(twist)
+				yahboom_keyboard.pub_angle.publish(angle_twist)
+				if current_angle != 0.0:  # Only print when angle is non-zero
+					print(f"Publishing angle: {current_angle}")
+			else:
+				# When stopped, still publish angle but stop movement
+				yahboom_keyboard.pub.publish(Twist())
+				yahboom_keyboard.pub_angle.publish(angle_twist)
+				if current_angle != 0.0:  # Only print when angle is non-zero
+					print(f"Publishing angle (stopped): {current_angle}")
 	except Exception as e: print(e)
 	finally: yahboom_keyboard.pub.publish(Twist())
 	termios.tcsetattr(sys.stdin, termios.TCSADRAIN, yahboom_keyboard.settings)
